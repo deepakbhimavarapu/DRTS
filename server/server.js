@@ -1,10 +1,18 @@
 const { Pool } = require('pg');
 const express = require('express');
+const session = require('express-session');
 
 
 const app = express();
 const port = 3001;
 app.use(express.json());
+
+app.use(session({
+  secret: 'helloworld!',
+  resave: false,
+  saveUninitialized: true
+}));
+
 
 // PostgreSQL connection pool
 const pool = new Pool({
@@ -82,6 +90,41 @@ app.post('/api/register', async (req, res) => {
     console.error('Error registering user:', error);
     res.status(500).json({ message: 'Error occurred while registering user' });
   }
+});
+
+
+app.post('/api/login', (req, res) => {
+  const { email, password } = req.body;
+
+  // Check if the email and password combination exists in the users table
+  const query = {
+    text: 'SELECT * FROM users WHERE email = $1 AND password = $2',
+    values: [email, password],
+  };
+
+  pool
+    .query(query)
+    .then((result) => {
+      // If the result contains any rows, the email and password combination exists
+      const isLoggedIn = result.rows.length > 0;
+      console.log('User logged in:', email);
+      req.session.email = req.body.email;
+
+      // Send the login status (flag) back to the frontend
+      res.json({ message: isLoggedIn });
+    })
+    .catch((error) => {
+      console.error('Error querying users table:', error);
+      // Send an error response back to the frontend
+      res.status(500).json({ error: 'Internal server error' });
+    });
+});
+
+app.post('/api/logout', (req, res) => {
+  // Destroy the session and log out the user
+  req.session.destroy();
+  console.log("Logging Out")
+  res.json({ message: true });
 });
 
 // Start the server
