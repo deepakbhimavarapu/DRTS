@@ -8,6 +8,7 @@ const RegisterPage = ({ handleRegister }) => {
       name: event.target.name.value,
       email: event.target.email.value,
       phone: event.target.phone.value,
+      account: event.target.account.value,
       password: event.target.password.value,
     };
     // Call the handleRegister function with the form data
@@ -29,6 +30,10 @@ const RegisterPage = ({ handleRegister }) => {
         <div>
           <label htmlFor="phone">Phone:</label>
           <input type="tel" id="phone" name="phone" required />
+        </div>
+        <div>
+          <label htmlFor="account">Account:</label>
+          <input type="text" id="account" name="account" required />
         </div>
         <div>
           <label htmlFor="password">Password:</label>

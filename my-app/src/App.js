@@ -9,15 +9,19 @@ const App = () => {
   const [showRegister, setShowRegister] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [LoggedIn, setLoggedIn] = useState(false);
-  const [loggedInUser, setLoggedInUser] = useState({ email: '' });
+  const [loggedInUser, setLoggedInUser] = useState({ email: '' , balance:0, transactions:''});
+
 
   useEffect(() => {
   const isLoggedIn = localStorage.getItem('isLoggedIn');
   const userEmail = localStorage.getItem('userEmail');
+  const balance = localStorage.getItem('balance');
+  const transactions = JSON.parse(localStorage.getItem('transactions'));
+  
 
   if (isLoggedIn === 'true' && userEmail) {
     setLoggedIn(true);
-    setLoggedInUser({ email: userEmail });
+    setLoggedInUser({ email: userEmail, balance: balance, transactions:transactions['rows']});
   }
   }, []);
 
@@ -47,6 +51,29 @@ const App = () => {
   }
 };
 
+const handleTransaction = async (formData) => {
+  formData["email"] = loggedInUser.email;
+  console.log(formData)
+  try {
+    const response = await fetch('/api/transfer', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+    const data = await response.json();
+    alert("Transactions successful")
+    setLoggedInUser({ email: loggedInUser.email, balance: data.balance, transactions:data.transactions['rows']});
+    localStorage.setItem('balance', data.balance);
+    localStorage.setItem('transactions', JSON.stringify(data.transactions));
+  } catch (error) {
+    console.error(error);
+    // Display an error message if the registration fails
+    alert('Transfer failed');
+  }
+};
+
 const handleLogin = async (formData) => {
   try {
     const response = await fetch('/api/login', {
@@ -59,6 +86,8 @@ const handleLogin = async (formData) => {
 
     if (response.ok) {
       const data = await response.json();
+      
+      // setUserBalance(data.balance)
       const isLoggedIn = data.message;
 
       if (isLoggedIn) {
@@ -68,12 +97,14 @@ const handleLogin = async (formData) => {
         sessionStorage.setItem('isLoggedIn', 'true');
         // You can also store additional user data if needed
         localStorage.setItem('userEmail', formData.email);
+        localStorage.setItem('balance', data.balance);
+        localStorage.setItem('transactions', JSON.stringify(data.transactions));
         // Redirect to the Dashboard component
         setShowRegister(false);
         setShowLogin(false);
         setLoggedIn(true);
 
-        setLoggedInUser({ email: formData.email });
+        setLoggedInUser({ email: formData.email , balance:data.balance, transactions:data.transactions['rows']});
       } else {
         alert('Invalid email or password');
       }
@@ -96,13 +127,15 @@ const handleLogin = async (formData) => {
     });
     const data = await response.json();
     const isLoggedOut = data.message;
-    alert(data.message)
+    
     if (isLoggedOut) {
       setLoggedIn(false);
-      setLoggedInUser({ email: '' });
-      alert('user loggedout')
+      setLoggedInUser({ email: '', balance: 0, transactions:''});
+      
       localStorage.removeItem('isLoggedIn');
       localStorage.removeItem('userEmail');
+      localStorage.removeItem('balance');
+      localStorage.removeItem('transactions');
 
     } else {
       throw new Error('Logout failed');
@@ -112,6 +145,8 @@ const handleLogin = async (formData) => {
     alert('Logout failed');
   }
 };
+
+
 
 
   const handleSignup = () => {
@@ -126,7 +161,7 @@ const handleLogin = async (formData) => {
 
   return (
   <div className="App">
-    <h1>My App</h1>
+
     {!showRegister && !showLogin && !LoggedIn &&(
       <div>
         <button onClick={() => setShowRegister(true)}>Signup</button>
@@ -135,7 +170,7 @@ const handleLogin = async (formData) => {
     )}
     {showRegister && <RegisterPage handleRegister={handleRegister} />}
     {showLogin && <LoginForm handleLogin={handleLogin} />}
-    {LoggedIn && <Dashboard email={loggedInUser.email} handleLogout={handleLogout} />}
+    {LoggedIn && <Dashboard email={loggedInUser.email} handleLogout={handleLogout} handleTransaction={handleTransaction} balance={loggedInUser.balance} transactions={loggedInUser.transactions}/>}
   </div>
 );
 };
